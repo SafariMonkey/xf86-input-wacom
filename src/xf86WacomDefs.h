@@ -483,6 +483,7 @@ struct _WacomCommonRec
 
 #if GET_ABI_MAJOR(ABI_XINPUT_VERSION) >= 16
 	ValuatorMask *touch_mask;
+    ValuatorMask *scroll_events_mask;   /* ValuatorMask for smooth-scrolling */
 #endif
 };
 

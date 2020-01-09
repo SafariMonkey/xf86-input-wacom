@@ -627,10 +627,14 @@ static void wcmFingerScroll(WacomDevicePtr priv)
 	WacomDeviceState *start = common->wcmGestureState;
 	int midPoint_new = 0;
 	int midPoint_old = 0;
+	int delta = 0;
 	int i = 0, dist = 0;
 	WacomFilterState filterd;  /* borrow this struct */
 	int max_spread = common->wcmGestureParameters.wcmZoomDistance;
 	int spread;
+#if GET_ABI_MAJOR(ABI_XINPUT_VERSION) >= 16
+	ValuatorMask *mask = priv->common->scroll_events_mask;
+#endif
 
 	if (!common->wcmGesture)
 		return;
@@ -638,6 +642,8 @@ static void wcmFingerScroll(WacomDevicePtr priv)
 	getStateHistory(common, ds, ARRAY_SIZE(ds), 0);
 
 	DBG(10, priv, "\n");
+	DBG(1, priv, "Test Log\n");
+
 
 	spread = fabs(touchDistance(ds[0], ds[1]) - touchDistance(start[0], start[1]));
 
@@ -677,6 +683,38 @@ static void wcmFingerScroll(WacomDevicePtr priv)
 	/* scrolling has directions so rotation has to be considered first */
 	for (i=0; i<6; i++)
 		wcmRotateAndScaleCoordinates(priv->pInfo, &filterd.x[i], &filterd.y[i]);
+
+#if GET_ABI_MAJOR(ABI_XINPUT_VERSION) >= 16
+	/* if high resolution scrolling is enabled */
+	if (TRUE) {
+		valuator_mask_zero(mask);
+		DBG(10, priv, "High resolution\n");
+		DBG(11, priv, "Full resolution touch delta: %.1f\n", (
+			(((double)ds[0].y + (double)ds[1].y) / 2.) -
+			(((double)common->wcmGestureState[0].y + (double)common->wcmGestureState[1].y) / 2.)
+		));
+
+		midPoint_old = (((double)filterd.y[2] + (double)filterd.y[3]) / 2.);
+		midPoint_new = (((double)filterd.y[0] + (double)filterd.y[1]) / 2.);
+		delta = midPoint_new - midPoint_old - common->wcmGestureParameters.wcmGestureUsed;
+		if (delta != 0) {
+			DBG(11, priv, "High resolution; setting y delta to %d\n", delta);
+			valuator_mask_set_double(mask, 7, (double)delta);
+		}
+		// if (priv->scroll.delta_x != 0.0) {
+		// 	valuator_mask_set_double(mask,
+		// 							 priv->scroll_axis_horiz, priv->scroll.delta_x);
+		// }
+		if (valuator_mask_num_valuators(mask)) {
+			DBG(11, priv, "High resolution; sending event\n");
+			xf86PostMotionEventM(priv->pInfo->dev, FALSE, mask);
+			common->wcmGestureParameters.wcmGestureUsed += delta;
+		}
+		return;
+	}
+#endif
+
+	DBG(10, priv, "Low resolution\n");
 
 	/* check vertical direction */
 	if (common->wcmGestureParameters.wcmScrollDirection == WACOM_VERT_ALLOWED)

@@ -304,6 +304,28 @@ static int wcmInitAxes(DeviceIntPtr pWcm)
 		wcmInitAxis(pInfo->dev, index, label, min, max, res, min_res, max_res, mode);
 	}
 
+	/* eighth valuator: scroll x */
+	if ((TabletHasFeature(common, WCM_2FGT)) && IsTouch(priv))
+	{
+		index = 7;
+		label = XIGetKnownProperty(AXIS_LABEL_PROP_REL_HSCROLL);
+		mode = Relative;
+		min = max = res = min_res = max_res = 0;
+
+		wcmInitAxis(pInfo->dev, index, label, min, max, res, min_res, max_res, mode);
+	}
+
+	/* ninth valuator: scroll y */
+	if ((TabletHasFeature(common, WCM_2FGT)) && IsTouch(priv))
+	{
+		index = 8;
+		label = XIGetKnownProperty(AXIS_LABEL_PROP_REL_VSCROLL);
+		mode = Relative;
+		min = max = res = min_res = max_res = 0;
+
+		wcmInitAxis(pInfo->dev, index, label, min, max, res, min_res, max_res, mode);
+	}
+
 	return TRUE;
 }
 
@@ -334,6 +356,9 @@ static int wcmDevInit(DeviceIntPtr pWcm)
 
 	if (IsPad(priv) && TabletHasFeature(priv->common, WCM_DUALRING))
 		nbaxes = priv->naxes = nbaxes + 1; /* ABS wheel 2 */
+
+	if (IsTouch(priv) && TabletHasFeature(common, WCM_2FGT))
+		nbaxes = priv->naxes = nbaxes + 2; /* Touch scroll */
 
 	/* if more than 3 buttons, offset by the four scroll buttons,
 	 * otherwise, alloc 7 buttons for scroll wheel. */
@@ -379,8 +404,8 @@ static int wcmDevInit(DeviceIntPtr pWcm)
 			return FALSE;
 	}
 
-	if (!nbaxes || nbaxes > 7)
-		nbaxes = priv->naxes = 7;
+	if (!nbaxes || nbaxes > 9)
+		nbaxes = priv->naxes = 9;
 
 	/* axis_labels is just zeros, we set up each valuator with the
 	 * correct property later */
@@ -417,6 +442,9 @@ static int wcmDevInit(DeviceIntPtr pWcm)
 			return FALSE;
 		}
 		priv->common->touch_mask = valuator_mask_new(2);
+		if (TabletHasFeature(common, WCM_2FGT)) {
+			priv->common->scroll_events_mask = valuator_mask_new(2);
+		}
 	}
 #endif
 

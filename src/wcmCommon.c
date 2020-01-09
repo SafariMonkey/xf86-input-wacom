@@ -783,7 +783,7 @@ void wcmSendEvents(InputInfoPtr pInfo, const WacomDeviceState* ds)
 	valuators[3] = v3;
 	valuators[4] = v4;
 	valuators[5] = v5;
-	if (priv->naxes > 6)
+	if (priv->naxes == 7 || priv->naxes == 9)
 		valuators[6] = v6;
 
 	if (type == PAD_ID)
@@ -1594,6 +1594,7 @@ void wcmFreeCommon(WacomCommonPtr *ptr)
 		free(common->device_path);
 #if GET_ABI_MAJOR(ABI_XINPUT_VERSION) >= 16
 		free(common->touch_mask);
+		free(common->scroll_events_mask);
 #endif
 		free(common);
 	}
